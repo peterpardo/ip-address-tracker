@@ -1,10 +1,69 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import bgPattern from "./assets/pattern-bg.png";
 import Map from "./Map";
 import ResultItem from "./components/ResultItem";
 
 const App = () => {
+  // 1000 request only
+  const API_KEY = "at_t57za9BtzJ6507LeCkA99NT7GqWFD";
+  const API_URL = "https://geo.ipify.org/api/v2/country,city?";
+
+  const [ipInfo, setIpInfo] = useState({
+    ip: "none",
+    isp: "none",
+    location: {
+      country: "none",
+      region: "none",
+      timezone: "none",
+      lat: 0,
+      lng: 0,
+    },
+  });
+  const [search, setSearch] = useState("");
+
+  const handleSearch = async () => {
+    try {
+      const count = search.match(/[.]/g).length;
+      let url;
+      if (count === 3) {
+        url = `${API_URL}apiKey=${API_KEY}&ipAddress=${search}`;
+      } else {
+        url = `${API_URL}apiKey=${API_KEY}&domain=${search}`;
+      }
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data?.code) {
+        setIpInfo({
+          ip: "none",
+          isp: "none",
+          location: {
+            country: "none",
+            region: "none",
+            timezone: "none",
+            lat: 0,
+            lng: 0,
+          },
+        });
+        alert(data?.messages);
+      } else {
+        setIpInfo(data);
+      }
+    } catch (err) {
+      alert(`Enter a valid domain name`);
+    }
+  };
+
+  useEffect(() => {
+    const fetchIpInfo = async () => {
+      const response = await fetch(`${API_URL}apiKey=${API_KEY}`);
+      const data = await response.json();
+      setIpInfo(data);
+    };
+
+    fetchIpInfo();
+  }, []);
+
   return (
     <main className="h-screen flex flex-col">
       {/* bg pattern */}
@@ -17,15 +76,17 @@ const App = () => {
         </h1>
 
         {/* search bar */}
-        <div className="flex justify-center max-w-xs sm:max-w-md md:max-w-xl w-full mx-auto">
+        <div className="flex justify-center max-w-[280px] sm:max-w-md md:max-w-xl w-full mx-auto">
           <input
-            className="px-5 py-4 rounded-l-lg outline-none w-full"
+            className="px-4 py-3 rounded-l-lg outline-none w-full text-sm md:px:5 md:py-4 md:text-md"
             type="text"
             placeholder="Search for any IP adresses or domain"
+            onChange={(e) => setSearch(e.target.value)}
           />
           <button
             className="bg-dark-gray-dark py-2 px-5 rounded-r-lg hover:bg-dark-gray"
-            type="button">
+            type="button"
+            onClick={() => handleSearch()}>
             <svg xmlns="http://www.w3.org/2000/svg" width="11" height="14">
               <path
                 fill="none"
@@ -38,17 +99,22 @@ const App = () => {
         </div>
 
         {/* result */}
-        <div className="drop-shadow-md bg-white md:divide-x-2 m-auto absolute inset-x-0 -bottom-0 translate-y-[60%] z-10 rounded-xl p-4 md:py-5 flex items-center flex-col md:flex-row gap-y-4 w-full max-w-xs sm:max-w-md md:max-w-fit">
-          <ResultItem title="IP ADDRESS" value="192.212.174.101" />
-          <ResultItem title="LOCATION" value="Brooklyn, NY 10001" />
-          <ResultItem title="TIMEZONE" value="UTC-05:00" />
-          <ResultItem title="ISP" value="SpaceX Starlink" />
+        <div
+          className="flex items-center flex-col gap-y-2 w-full max-w-[280px] drop-shadow-lg bg-white m-auto absolute inset-x-0 -bottom-0 translate-y-[40%] z-10 rounded-xl py-4 
+          sm:max-w-md md:divide-x-2 md:py-5 md:flex-row md:max-w-fit md:translate-y-1/2">
+          <ResultItem title="IP ADDRESS" value={ipInfo?.ip} />
+          <ResultItem
+            title="LOCATION"
+            value={`${ipInfo.location.country}, ${ipInfo?.location?.region}`}
+          />
+          <ResultItem title="TIMEZONE" value={ipInfo?.location?.timezone} />
+          <ResultItem title="ISP" value={ipInfo?.isp} />
         </div>
       </div>
 
       {/* map */}
       <div className="w-full h-[300px] flex-1">
-        <Map />
+        <Map lat={ipInfo?.location?.lat} lng={ipInfo?.location?.lng} />
       </div>
     </main>
   );
